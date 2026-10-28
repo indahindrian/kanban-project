@@ -486,3 +486,52 @@ Ini bagian paling penting buat programmer yang lanjut kerja di project ini — s
 ---
 
 *Dokumen ini dibuat mengikuti perubahan yang sudah diterapkan ke aplikasi per tanggal dokumentasi ini ditulis. Kalau ada perubahan besar berikutnya, update juga bagian yang relevan di file ini — jangan biarkan dokumentasi basi sementara kode terus berubah.*
+
+
+---
+
+## 12. Hak Akses Dinamis: User, Role, Permission, Audit Log
+
+Menggantikan 2 role lama (`anggota`/`atasan`, enum di `users.role`) dengan role dan permission yang bisa diatur dari UI.
+
+### Setup
+Jalankan **sekali**, setelah `migration_auth_roles.sql`:
+
+```bash
+mysql -u root kanban < database/migration_rbac.sql
+```
+
+Efek: tabel baru `roles`, `permissions`, `role_permissions`, `audit_logs`; kolom `users.role` dihapus dan diganti `users.role_id` + `users.is_active`. Akun lama dipetakan: `atasan` -> **Atasan / Monitoring** (hanya lihat), `anggota` -> **R&D / MDS**. Akun **Super Admin** baru: `admin@example.com` / `password123` (**ganti segera**).
+
+### Halaman
+| URL | Controller | Permission | Fungsi |
+|---|---|---|---|
+| `/user` | `C_user` | `system.users` | Tambah user, edit nama/email/role, reset password, aktif/nonaktif |
+| `/role` | `C_role` | `system.permissions` | Tambah/edit/hapus role (Super Admin terkunci) |
+| `/permission` | `C_permission` | `system.permissions` | Centang hak akses per role |
+| `/audit` | `C_audit` | `system.audit` | 200 aktivitas terakhir |
+| `/akun` | `C_account` | login saja | Ubah profil & password sendiri |
+
+### Daftar permission (10)
+| Kode | Fungsi di aplikasi |
+|---|---|
+| `dashboard.view` | Dicadangkan (belum dipakai untuk membatasi halaman) |
+| `project.view_all` | Melihat semua project (tanpa ini: hanya project yang user jadi member-nya) |
+| `project.create` | `createProject` |
+| `project.edit_own` | Edit project/task/label/checklist **hanya di project yang user jadi member-nya** |
+| `doc.upload` | Tambah/hapus lampiran (link & file) |
+| `doc.update_status` | Geser status task, tandai selesai, centang checklist |
+| `doc.edit_others` | Memperluas `doc.upload` dan `doc.update_status` ke project yang user bukan member-nya |
+| `system.users`, `system.permissions`, `system.audit` | Pengaturan sistem; **super_only**, tidak bisa diberikan ke role selain Super Admin |
+
+### Cara kerja (`MY_Controller`)
+- Role & permission dibaca dari DB **di setiap request** (bukan di session): perubahan hak akses dan penonaktifan akun langsung berlaku.
+- Super Admin (`roles.is_system = 1`) selalu punya semua permission.
+- Helper: `has_permission($code)`, `require_permission($code)` (halaman), `require_permission_api($code)` (JSON), `can_view_project()`, `can_edit_project()`, `can_update_status()`, `can_upload_doc()`. `can_access_project()` tetap ada sebagai alias `can_view_project()`.
+- Endpoint **baca** memakai `can_view_project`; endpoint **ubah** dipisah ke `can_edit_project` / `can_update_status` / `can_upload_doc` (lihat pemetaan di `C_project.php`).
+- View dashboard menyembunyikan tombol ubah sesuai izin (`no-edit`, `no-doc`, `no-status`), tapi itu hanya kosmetik; server tetap memeriksa.
+
+### Menambah permission baru
+1. `INSERT INTO permissions (...)` (kolom `group_key`: `main`/`doc`/`system`).
+2. Cek di controller dengan `has_permission('kode.baru')`.
+3. Muncul otomatis di halaman Hak Akses; tidak perlu ubah view.

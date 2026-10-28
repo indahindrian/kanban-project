@@ -54,6 +54,18 @@ $route['project/detail/(:num)'] = 'C_project/detail/$1';
 $route['project/dashboard/(:num)'] = 'C_project/dashboard/$1';
 $route['project/(:any)'] = 'C_project/$1';
 
+$route['akun'] = 'C_account';
+$route['akun/(:any)'] = 'C_account/$1';
+
+$route['user'] = 'C_user';
+$route['user/(:any)'] = 'C_user/$1';
+$route['role'] = 'C_role';
+$route['role/(:any)'] = 'C_role/$1';
+$route['permission'] = 'C_permission';
+$route['permission/(:any)'] = 'C_permission/$1';
+$route['audit'] = 'C_audit';
+$route['audit/(:any)'] = 'C_audit/$1';
+
 $route['auth'] = 'C_auth';
 $route['auth/(:any)'] = 'C_auth/$1';
 

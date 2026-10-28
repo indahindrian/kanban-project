@@ -30,15 +30,21 @@ class C_auth extends MY_Controller
                 give_response('01', 'Email atau password salah');
                 return;
             }
+            if (!(int) $user['is_active']) {
+                give_response('01', 'Akun Anda dinonaktifkan. Hubungi administrator.');
+                return;
+            }
 
             $this->session->set_userdata([
                 'user_id'    => $user['id'],
                 'user_name'  => $user['name'],
                 'user_email' => $user['email'],
-                'user_role'  => $user['role'],
             ]);
 
-            give_response('00', 'LOGIN SUKSES', ['role' => $user['role']]);
+            $this->load->model('M_audit');
+            $this->M_audit->log($user['id'], 'login', $user['email']);
+
+            give_response('00', 'LOGIN SUKSES');
         } catch (Exception $exception) {
             give_response('01', $exception->getMessage());
         }

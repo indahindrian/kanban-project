@@ -37,8 +37,9 @@
 
   <div class="hint">
     Demo akun (password sama: <b>password123</b>):<br>
-    Atasan &rarr; <b>siti@example.com</b><br>
-    Anggota &rarr; <b>budi@example.com</b> / <b>andi@example.com</b>
+    Super Admin &rarr; <b>admin@example.com</b><br>
+    Atasan / Monitoring &rarr; <b>siti@example.com</b><br>
+    R&amp;D / MDS &rarr; <b>budi@example.com</b> / <b>andi@example.com</b>
   </div>
 </div>
 

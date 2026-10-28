@@ -118,10 +118,11 @@
       <div class="sidebar-profile-inner">
         <div class="sidebar-avatar"><?= strtoupper(substr($user_name, 0, 1)) ?></div>
         <div class="sidebar-username"><?= html_escape($user_name) ?></div>
-        <div class="sidebar-fullname"><?= $is_atasan ? 'Atasan' : 'Anggota' ?></div>
+        <div class="sidebar-fullname"><?= html_escape($role_name) ?></div>
       </div>
     </div>
-    <div class="sidebar-account">
+    <div class="sidebar-account" style="display:flex;gap:14px">
+      <a href="<?= site_url('akun') ?>">Akun saya</a>
       <a href="<?= site_url('auth/logout') ?>">Logout</a>
     </div>
 
@@ -135,7 +136,9 @@
         <a class="nav-item" href="<?= site_url('project/planningPage') ?>">Planning</a>
       </div>
 
-      <a class="nav-item disabled" title="Belum tersedia">Manajemen pengguna</a>
+      <?php if ($can_manage_users): ?>
+      <a class="nav-item" href="<?= site_url('user') ?>">Manajemen pengguna</a>
+      <?php endif; ?>
       <a class="nav-item disabled" title="Belum tersedia">Master</a>
     </div>
   </div>
@@ -145,7 +148,7 @@
       <h1>Projects</h1>
       <div class="topbar-actions">
         <button class="btn btn-outline" onclick="location.href='<?= site_url('project/ganttGlobalPage') ?>'">Gantt chart global</button>
-        <?php if ($is_atasan): ?>
+        <?php if ($can_create_project): ?>
         <button class="btn btn-primary" onclick="openCreateModal()">+ Project baru</button>
         <?php endif; ?>
       </div>

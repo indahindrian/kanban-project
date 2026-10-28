@@ -30,7 +30,7 @@ class C_project extends MY_Controller
     public function index()
     {
         if (!$this->require_login()) return;
-        $data['is_atasan'] = $this->is_atasan();
+        $data['is_atasan'] = $this->can_view_all();
         $data['user_name'] = $this->current_user['name'];
         $this->load->view('project/projects_list', $data);
     }
@@ -54,15 +54,19 @@ class C_project extends MY_Controller
             return;
         }
         $data['project_id'] = $project_id;
-        $data['is_atasan']  = $this->is_atasan();
+        $data['is_atasan']  = $this->can_view_all();
         $data['user_name']  = $this->current_user['name'];
+        // Flag izin untuk UI (server tetap yang memutuskan di tiap endpoint)
+        $data['can_edit']   = $this->can_edit_project($project_id);
+        $data['can_status'] = $this->can_update_status($project_id);
+        $data['can_doc']    = $this->can_upload_doc($project_id);
         $this->load->view('project/dashboard', $data);
     }
 
     public function ganttGlobalPage()
     {
         if (!$this->require_login()) return;
-        $data['is_atasan'] = $this->is_atasan();
+        $data['is_atasan'] = $this->can_view_all();
         $data['user_name'] = $this->current_user['name'];
         $this->load->view('project/gantt_global', $data);
     }
@@ -70,7 +74,7 @@ class C_project extends MY_Controller
     public function planningPage()
     {
         if (!$this->require_login()) return;
-        $data['is_atasan'] = $this->is_atasan();
+        $data['is_atasan'] = $this->can_view_all();
         $data['user_name'] = $this->current_user['name'];
         $data['user_id']   = $this->current_user['id'];
         $this->load->view('project/planning', $data);
@@ -83,7 +87,7 @@ class C_project extends MY_Controller
     {
         try {
             if (!$this->require_login_api()) return;
-            $projects = $this->M_project->get_all_for_user($this->current_user['id'], $this->is_atasan());
+            $projects = $this->M_project->get_all_for_user($this->current_user['id'], $this->can_view_all());
             give_response('00', 'GET PROJECTS SUKSES', $projects);
         } catch (Exception $exception) {
             give_response('01', $exception->getMessage());
@@ -115,12 +119,8 @@ class C_project extends MY_Controller
         try {
             if (!$this->require_login_api()) return;
             $id = $this->input->post('id');
-            if (!$this->can_access_project($id)) {
-                give_response('03', 'Anda tidak punya akses ke project ini');
-                return;
-            }
-            if (!$this->is_atasan()) {
-                give_response('03', 'Hanya atasan yang bisa mengubah detail project');
+            if (!$this->can_edit_project($id)) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
             $this->M_project->update($id, [
@@ -143,8 +143,8 @@ class C_project extends MY_Controller
         try {
             if (!$this->require_login_api()) return;
 
-            if (!$this->is_atasan()) {
-                give_response('03', 'Hanya atasan yang bisa membuat project baru');
+            if (!$this->has_permission('project.create')) {
+                give_response('03', 'Anda tidak punya izin membuat project baru');
                 return;
             }
 
@@ -234,8 +234,8 @@ class C_project extends MY_Controller
             if (!$this->require_login_api()) return;
             $project_id = $this->input->post('project_id');
             $title      = trim((string) $this->input->post('title'));
-            if (!$this->can_access_project($project_id)) {
-                give_response('03', 'Anda tidak punya akses ke project ini');
+            if (!$this->can_edit_project($project_id)) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
             if (!$project_id || $title === '') {
@@ -256,8 +256,8 @@ class C_project extends MY_Controller
             if (!$this->require_login_api()) return;
             $task_id    = $this->input->post('task_id');
             $new_status = $this->input->post('new_status');
-            if (!$this->can_access_project($this->M_task->get_project_id($task_id))) {
-                give_response('03', 'Anda tidak punya akses ke task ini');
+            if (!$this->can_update_status($this->M_task->get_project_id($task_id))) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
 
@@ -284,8 +284,8 @@ class C_project extends MY_Controller
                 give_response('01', 'Task tidak ditemukan');
                 return;
             }
-            if (!$this->can_access_project($task['project_id'])) {
-                give_response('03', 'Anda tidak punya akses ke task ini');
+            if (!$this->can_update_status($task['project_id'])) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
 
@@ -332,8 +332,8 @@ class C_project extends MY_Controller
         try {
             if (!$this->require_login_api()) return;
             $task_id = $this->input->post('task_id');
-            if (!$this->can_access_project($this->M_task->get_project_id($task_id))) {
-                give_response('03', 'Anda tidak punya akses ke task ini');
+            if (!$this->can_edit_project($this->M_task->get_project_id($task_id))) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
             $fields = array_filter([
@@ -354,8 +354,8 @@ class C_project extends MY_Controller
         try {
             if (!$this->require_login_api()) return;
             $task_id = $this->input->post('task_id');
-            if (!$this->can_access_project($this->M_task->get_project_id($task_id))) {
-                give_response('03', 'Anda tidak punya akses ke task ini');
+            if (!$this->can_edit_project($this->M_task->get_project_id($task_id))) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
             $this->db->where('id', $task_id)->delete('tasks');
@@ -390,8 +390,8 @@ class C_project extends MY_Controller
             $project_id = $this->input->post('project_id');
             $name  = trim((string) $this->input->post('name'));
             $color = $this->input->post('color');
-            if (!$this->can_access_project($project_id)) {
-                give_response('03', 'Anda tidak punya akses ke project ini');
+            if (!$this->can_edit_project($project_id)) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
             if (!$project_id || $name === '') {
@@ -410,8 +410,8 @@ class C_project extends MY_Controller
         try {
             if (!$this->require_login_api()) return;
             $task_id = $this->input->post('task_id');
-            if (!$this->can_access_project($this->M_task->get_project_id($task_id))) {
-                give_response('03', 'Anda tidak punya akses ke task ini');
+            if (!$this->can_edit_project($this->M_task->get_project_id($task_id))) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
             $this->M_label->attach($task_id, $this->input->post('label_id'));
@@ -426,8 +426,8 @@ class C_project extends MY_Controller
         try {
             if (!$this->require_login_api()) return;
             $task_id = $this->input->post('task_id');
-            if (!$this->can_access_project($this->M_task->get_project_id($task_id))) {
-                give_response('03', 'Anda tidak punya akses ke task ini');
+            if (!$this->can_edit_project($this->M_task->get_project_id($task_id))) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
             $this->M_label->detach($task_id, $this->input->post('label_id'));
@@ -445,8 +445,8 @@ class C_project extends MY_Controller
         try {
             if (!$this->require_login_api()) return;
             $task_id = $this->input->post('task_id');
-            if (!$this->can_access_project($this->M_task->get_project_id($task_id))) {
-                give_response('03', 'Anda tidak punya akses ke task ini');
+            if (!$this->can_edit_project($this->M_task->get_project_id($task_id))) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
             $this->M_member->add($task_id, $this->input->post('user_id'));
@@ -461,8 +461,8 @@ class C_project extends MY_Controller
         try {
             if (!$this->require_login_api()) return;
             $task_id = $this->input->post('task_id');
-            if (!$this->can_access_project($this->M_task->get_project_id($task_id))) {
-                give_response('03', 'Anda tidak punya akses ke task ini');
+            if (!$this->can_edit_project($this->M_task->get_project_id($task_id))) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
             $this->M_member->remove($task_id, $this->input->post('user_id'));
@@ -480,8 +480,8 @@ class C_project extends MY_Controller
         try {
             if (!$this->require_login_api()) return;
             $task_id = $this->input->post('task_id');
-            if (!$this->can_access_project($this->M_task->get_project_id($task_id))) {
-                give_response('03', 'Anda tidak punya akses ke task ini');
+            if (!$this->can_edit_project($this->M_task->get_project_id($task_id))) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
             $title = $this->input->post('title') ?: 'Checklist';
@@ -498,7 +498,7 @@ class C_project extends MY_Controller
             if (!$this->require_login_api()) return;
             $checklist_id = $this->input->post('checklist_id');
             $checklist = $this->M_checklist->find($checklist_id);
-            if (!$checklist || !$this->can_access_project($this->M_task->get_project_id($checklist['task_id']))) {
+            if (!$checklist || !$this->can_edit_project($this->M_task->get_project_id($checklist['task_id']))) {
                 give_response('03', 'Anda tidak punya akses ke checklist ini');
                 return;
             }
@@ -515,7 +515,7 @@ class C_project extends MY_Controller
             if (!$this->require_login_api()) return;
             $checklist_id = $this->input->post('checklist_id');
             $checklist = $this->M_checklist->find($checklist_id);
-            if (!$checklist || !$this->can_access_project($this->M_task->get_project_id($checklist['task_id']))) {
+            if (!$checklist || !$this->can_edit_project($this->M_task->get_project_id($checklist['task_id']))) {
                 give_response('03', 'Anda tidak punya akses ke checklist ini');
                 return;
             }
@@ -538,7 +538,7 @@ class C_project extends MY_Controller
             $item_id = $this->input->post('item_id');
             $item = $this->M_checklist->find_item($item_id);
             $checklist = $item ? $this->M_checklist->find($item['checklist_id']) : null;
-            if (!$checklist || !$this->can_access_project($this->M_task->get_project_id($checklist['task_id']))) {
+            if (!$checklist || !$this->can_update_status($this->M_task->get_project_id($checklist['task_id']))) {
                 give_response('03', 'Anda tidak punya akses ke item ini');
                 return;
             }
@@ -556,7 +556,7 @@ class C_project extends MY_Controller
             $item_id = $this->input->post('item_id');
             $item = $this->M_checklist->find_item($item_id);
             $checklist = $item ? $this->M_checklist->find($item['checklist_id']) : null;
-            if (!$checklist || !$this->can_access_project($this->M_task->get_project_id($checklist['task_id']))) {
+            if (!$checklist || !$this->can_edit_project($this->M_task->get_project_id($checklist['task_id']))) {
                 give_response('03', 'Anda tidak punya akses ke item ini');
                 return;
             }
@@ -575,8 +575,8 @@ class C_project extends MY_Controller
         try {
             if (!$this->require_login_api()) return;
             $task_id = $this->input->post('task_id');
-            if (!$this->can_access_project($this->M_task->get_project_id($task_id))) {
-                give_response('03', 'Anda tidak punya akses ke task ini');
+            if (!$this->can_upload_doc($this->M_task->get_project_id($task_id))) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
             $name = trim((string) $this->input->post('name'));
@@ -601,8 +601,8 @@ class C_project extends MY_Controller
                 give_response('01', 'task_id wajib diisi');
                 return;
             }
-            if (!$this->can_access_project($this->M_task->get_project_id($task_id))) {
-                give_response('03', 'Anda tidak punya akses ke task ini');
+            if (!$this->can_upload_doc($this->M_task->get_project_id($task_id))) {
+                give_response('03', 'Anda tidak punya izin untuk mengubah data ini');
                 return;
             }
 
@@ -640,7 +640,7 @@ class C_project extends MY_Controller
             if (!$this->require_login_api()) return;
             $id = $this->input->post('id');
             $attachment = $this->M_attachment->find($id);
-            if (!$attachment || !$this->can_access_project($this->M_task->get_project_id($attachment['task_id']))) {
+            if (!$attachment || !$this->can_upload_doc($this->M_task->get_project_id($attachment['task_id']))) {
                 give_response('03', 'Anda tidak punya akses ke attachment ini');
                 return;
             }
@@ -697,7 +697,7 @@ class C_project extends MY_Controller
         try {
             if (!$this->require_login_api()) return;
 
-            $projects = $this->M_project->get_all_for_user($this->current_user['id'], $this->is_atasan());
+            $projects = $this->M_project->get_all_for_user($this->current_user['id'], $this->can_view_all());
             if (empty($projects)) {
                 give_response('00', 'GET GANTT GLOBAL SUKSES', []);
                 return;
@@ -783,7 +783,7 @@ class C_project extends MY_Controller
             $start = $this->input->get('start') ?: date('Y-m-01');
             $end   = $this->input->get('end') ?: date('Y-m-d', strtotime('first day of next month'));
 
-            $projects = $this->M_project->get_all_for_user($this->current_user['id'], $this->is_atasan());
+            $projects = $this->M_project->get_all_for_user($this->current_user['id'], $this->can_view_all());
             $project_ids = array_column($projects, 'id');
 
             if (empty($project_ids)) {
@@ -800,7 +800,7 @@ class C_project extends MY_Controller
                 ->where('t.due_date >=', $start)
                 ->where('t.due_date <', $end);
 
-            if (!$this->is_atasan()) {
+            if (!$this->can_view_all()) {
                 $query->where('u.id', $this->current_user['id']);
             }
 
@@ -871,7 +871,7 @@ class C_project extends MY_Controller
         try {
             if (!$this->require_login_api()) return;
 
-            $projects   = $this->M_project->get_all_for_user($this->current_user['id'], $this->is_atasan());
+            $projects   = $this->M_project->get_all_for_user($this->current_user['id'], $this->can_view_all());
             $project_ids = array_column($projects, 'id');
             $today = date('Y-m-d');
 

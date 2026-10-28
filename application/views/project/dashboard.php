@@ -240,9 +240,15 @@
   .nt-actions { display:flex; justify-content:flex-end; gap:8px; }
   .nt-actions .nt-cancel { border:none; background:#ebecf0; color:var(--text); border-radius:6px; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; }
   @media (max-width:520px) { .nt-row { grid-template-columns:1fr; } }
+  /* ===== Mode baca-saja (UI saja; server tetap memeriksa izin di tiap endpoint) ===== */
+  .no-edit #btn-add-task, .no-edit .add-card-btn, .no-edit .composer-slot,
+  .no-edit [onclick*="createNewLabel"], .no-edit [onclick*="addChecklist("], .no-edit [onclick*="deleteChecklist"],
+  .no-edit [onclick*="addChecklistItem"], .no-edit [onclick*="deleteChecklistItem"], .no-edit [onclick*="saveDescription"] { display:none !important; }
+  .no-doc .attachment-actions, .no-doc [onclick*="deleteAttachment"] { display:none !important; }
+  .no-status .complete-toggle { pointer-events:none; opacity:.5; }
 </style>
 </head>
-<body>
+<body class="<?= $can_edit ? '' : 'no-edit' ?> <?= $can_doc ? '' : 'no-doc' ?> <?= $can_status ? '' : 'no-status' ?>">
 
 <div class="app">
 
@@ -260,7 +266,8 @@
     </div>
 
     <div class="sidebar-user">
-      <?= html_escape($user_name) ?><span class="role-badge"><?= $is_atasan ? 'Atasan' : 'Anggota' ?></span>
+      <?= html_escape($user_name) ?><span class="role-badge"><?= html_escape($role_name) ?></span>
+      <a href="<?= site_url('akun') ?>" style="margin-right:14px">Akun saya</a>
       <a href="<?= site_url('auth/logout') ?>">Logout</a>
     </div>
   </div>
@@ -535,6 +542,7 @@ function renderBoard(columns) {
 
   document.querySelectorAll('.task-list').forEach(el => {
     new Sortable(el, {
+      disabled: !CAN_STATUS,
       group: 'kanban',
       animation: 150,
       onEnd: async (evt) => {
@@ -908,7 +916,10 @@ async function loadScoreboard() {
 loadKanban();
 
 // ===== PENGATURAN PROJECT (dulu halaman detail terpisah) =====
-const settingsIsAtasan = <?= json_encode((bool) $is_atasan) ?>;
+const settingsIsAtasan = <?= json_encode((bool) $can_edit) ?>; // nama lama: = boleh edit project ini
+const CAN_EDIT   = <?= json_encode((bool) $can_edit) ?>;
+const CAN_STATUS = <?= json_encode((bool) $can_status) ?>;
+const CAN_DOC    = <?= json_encode((bool) $can_doc) ?>;
 const settingsEsc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 async function loadSettings() {
@@ -961,7 +972,7 @@ function renderSettings(p) {
           <div><label>Aktual</label><input type="date" id="f-aktual-selesai" value="${settingsEsc(p.tanggal_aktual_selesai)}" ${ro}>${settingsDateNote(p.tanggal_rencana_selesai, p.tanggal_aktual_selesai, 'selesai')}</div>
         </div>
       </div>
-      ${settingsIsAtasan ? '' : '<div class="s-note pending">Hanya atasan yang bisa mengubah pengaturan project ini.</div>'}
+      ${settingsIsAtasan ? '' : '<div class="s-note pending">Anda hanya punya akses lihat untuk project ini.</div>'}
     </div>
     ${settingsIsAtasan ? `<div class="s-actions"><button class="s-save" id="s-save" onclick="saveSettings()">Simpan perubahan</button><span class="s-msg" id="s-msg"></span></div>` : ''}`;
 }
