@@ -41,7 +41,7 @@ async function saveProfile() {
   flash('msg-profile', json.code === '00', json.code === '00' ? 'Profil berhasil disimpan.' : json.message);
   if (json.code === '00') {
     document.getElementById('sb-name').innerText = json.data.name;
-    document.getElementById('sb-avatar').innerText = (json.data.name || '?').charAt(0).toUpperCase();
+    
   }
 }
 

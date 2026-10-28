@@ -1,5 +1,5 @@
     </div><!-- /.content -->
-  </main>
+  </div><!-- /.main -->
 </div><!-- /.app -->
 
 <script>

@@ -35,12 +35,12 @@
     <button type="submit">Login</button>
   </form>
 
-  <div class="hint">
+  <!-- <div class="hint">
     Demo akun (password sama: <b>password123</b>):<br>
     Super Admin &rarr; <b>admin@example.com</b><br>
     Atasan / Monitoring &rarr; <b>siti@example.com</b><br>
     R&amp;D / MDS &rarr; <b>budi@example.com</b> / <b>andi@example.com</b>
-  </div>
+  </div> -->
 </div>
 
 <script>

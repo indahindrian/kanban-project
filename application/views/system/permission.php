@@ -39,9 +39,9 @@
 <?php $this->load->view('system/_footer'); ?>
 <script>
 const GROUPS = [
-  { key: 'main',   title: 'Main & Proyek',      tag: 'Modular',          color: '#2563eb' },
-  { key: 'doc',    title: 'Dokumentasi & TW',   tag: 'Technical Writer', color: '#16a34a' },
-  { key: 'system', title: 'Pengaturan Sistem',  tag: 'Super Admin',      color: '#dc2626' }
+  { key: 'main',   title: 'Main & Proyek',      tag: 'Modular',          color: '#0052cc' },
+  { key: 'doc',    title: 'Dokumentasi & TW',   tag: 'Technical Writer', color: '#36b37e' },
+  { key: 'system', title: 'Pengaturan Sistem',  tag: 'Super Admin',      color: '#de350b' }
 ];
 let PERMS = [], LOCKED = false, CURRENT = null;
 
